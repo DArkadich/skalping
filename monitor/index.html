@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мониторинг бота скальпинга</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .status-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .status-card h3 {
+            margin-top: 0;
+            color: #ffd700;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-online {
+            background-color: #4CAF50;
+            box-shadow: 0 0 10px #4CAF50;
+        }
+        
+        .status-offline {
+            background-color: #f44336;
+            box-shadow: 0 0 10px #f44336;
+        }
+        
+        .status-warning {
+            background-color: #ff9800;
+            box-shadow: 0 0 10px #ff9800;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .metric-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        .actions {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .logs {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        
+        .log-info { background: rgba(76, 175, 80, 0.2); }
+        .log-warning { background: rgba(255, 152, 0, 0.2); }
+        .log-error { background: rgba(244, 67, 54, 0.2); }
+        
+        .refresh-info {
+            text-align: center;
+            margin-top: 20px;
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 768px) {
+            .status-grid, .metrics {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn {
+                display: block;
+                margin: 10px auto;
+                width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 Мониторинг бота скальпинга</h1>
+        
+        <div class="status-grid">
+            <div class="status-card">
+                <h3>Статус бота</h3>
+                <div id="bot-status">
+                    <span class="status-indicator status-offline"></span>
+                    <span id="status-text">Проверка...</span>
+                </div>
+                <p>Последняя проверка: <span id="last-check">-</span></p>
+            </div>
+            
+            <div class="status-card">
+                <h3>Подключение к Bybit</h3>
+                <div id="bybit-status">
+                    <span class="status-indicator status-offline"></span>
+                    <span id="bybit-text">Проверка...</span>
+                </div>
+                <p>API статус: <span id="api-status">-</span></p>
+            </div>
+            
+            <div class="status-card">
+                <h3>Активные позиции</h3>
+                <div id="positions-status">
+                    <span class="status-indicator status-offline"></span>
+                    <span id="positions-text">Проверка...</span>
+                </div>
+                <p>Количество: <span id="positions-count">-</span></p>
+            </div>
+        </div>
+        
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="metric-value" id="current-price">-</div>
+                <div class="metric-label">Текущая цена</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-value" id="total-pnl">-</div>
+                <div class="metric-label">Общий P&L</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-value" id="trades-today">-</div>
+                <div class="metric-label">Сделок сегодня</div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-value" id="uptime">-</div>
+                <div class="metric-label">Время работы</div>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn" onclick="refreshStatus()">🔄 Обновить</button>
+            <button class="btn" onclick="viewLogs()">📋 Логи</button>
+            <button class="btn" onclick="restartBot()">🔄 Перезапуск</button>
+            <button class="btn" onclick="stopBot()">🛑 Остановить</button>
+        </div>
+        
+        <div class="logs" id="logs-container" style="display: none;">
+            <h3>Последние логи:</h3>
+            <div id="logs-content">
+                <div class="log-entry log-info">Загрузка логов...</div>
+            </div>
+        </div>
+        
+        <div class="refresh-info">
+            Автообновление каждые 30 секунд
+        </div>
+    </div>
+
+    <script>
+        let refreshInterval;
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshStatus();
+            refreshInterval = setInterval(refreshStatus, 30000); // 30 секунд
+        });
+        
+        // Обновление статуса
+        async function refreshStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                updateStatus(data);
+                document.getElementById('last-check').textContent = new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error('Ошибка при обновлении статуса:', error);
+                updateStatus({ error: 'Ошибка подключения' });
+            }
+        }
+        
+        // Обновление UI
+        function updateStatus(data) {
+            if (data.error) {
+                document.getElementById('status-text').textContent = 'Ошибка';
+                document.getElementById('bot-status').querySelector('.status-indicator').className = 'status-indicator status-error';
+                return;
+            }
+            
+            // Статус бота
+            const botStatus = data.running ? 'Работает' : 'Остановлен';
+            const botIndicator = data.running ? 'status-online' : 'status-offline';
+            document.getElementById('status-text').textContent = botStatus;
+            document.getElementById('bot-status').querySelector('.status-indicator').className = `status-indicator ${botIndicator}`;
+            
+            // Статус Bybit
+            const bybitStatus = data.account_info ? 'Подключен' : 'Не подключен';
+            const bybitIndicator = data.account_info ? 'status-online' : 'status-offline';
+            document.getElementById('bybit-text').textContent = bybitStatus;
+            document.getElementById('bybit-status').querySelector('.status-indicator').className = `status-indicator ${bybitIndicator}`;
+            
+            // Позиции
+            const positionsCount = data.strategy_status?.active_positions || 0;
+            const positionsStatus = positionsCount > 0 ? 'Активны' : 'Нет';
+            const positionsIndicator = positionsCount > 0 ? 'status-online' : 'status-warning';
+            document.getElementById('positions-text').textContent = positionsStatus;
+            document.getElementById('positions-count').textContent = positionsCount;
+            document.getElementById('positions-status').querySelector('.status-indicator').className = `status-indicator ${positionsIndicator}`;
+            
+            // Метрики
+            document.getElementById('current-price').textContent = data.current_price ? `$${parseFloat(data.current_price).toFixed(2)}` : '-';
+            document.getElementById('total-pnl').textContent = data.total_pnl ? `${parseFloat(data.total_pnl).toFixed(2)}%` : '-';
+            document.getElementById('trades-today').textContent = data.trades_today || '-';
+            document.getElementById('uptime').textContent = data.uptime || '-';
+        }
+        
+        // Просмотр логов
+        async function viewLogs() {
+            const container = document.getElementById('logs-container');
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                try {
+                    const response = await fetch('/api/logs');
+                    const logs = await response.json();
+                    
+                    const logsContent = document.getElementById('logs-content');
+                    logsContent.innerHTML = logs.map(log => {
+                        const level = log.level.toLowerCase();
+                        return `<div class="log-entry log-${level}">[${log.timestamp}] ${log.message}</div>`;
+                    }).join('');
+                } catch (error) {
+                    document.getElementById('logs-content').innerHTML = '<div class="log-entry log-error">Ошибка загрузки логов</div>';
+                }
+            } else {
+                container.style.display = 'none';
+            }
+        }
+        
+        // Перезапуск бота
+        async function restartBot() {
+            if (confirm('Перезапустить бота?')) {
+                try {
+                    await fetch('/api/restart', { method: 'POST' });
+                    alert('Команда перезапуска отправлена');
+                    setTimeout(refreshStatus, 5000);
+                } catch (error) {
+                    alert('Ошибка при перезапуске');
+                }
+            }
+        }
+        
+        // Остановка бота
+        async function stopBot() {
+            if (confirm('Остановить бота?')) {
+                try {
+                    await fetch('/api/stop', { method: 'POST' });
+                    alert('Команда остановки отправлена');
+                    setTimeout(refreshStatus, 2000);
+                } catch (error) {
+                    alert('Ошибка при остановке');
+                }
+            }
+        }
+        
+        // Очистка при закрытии
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+</body>
+</html>
