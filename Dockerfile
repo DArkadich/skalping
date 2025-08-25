@@ -16,11 +16,10 @@ COPY requirements.txt .
 # Устанавливаем Python зависимости
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Клонируем репозиторий
-RUN git clone https://github.com/DArkadich/skalping.git /tmp/skalping
-
-# Копируем файлы бота
-COPY --from=0 /tmp/skalping/ .
+# Клонируем репозиторий с GitHub
+RUN git clone https://github.com/DArkadich/skalping.git /tmp/skalping && \
+    cp -r /tmp/skalping/* . && \
+    rm -rf /tmp/skalping
 
 # Делаем скрипты исполняемыми
 RUN chmod +x run_bot.sh deploy.sh

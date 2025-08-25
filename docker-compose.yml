@@ -1,13 +1,13 @@
-version: '3.8'
+# Docker Compose configuration
 
 services:
   scalping-bot:
     build: .
     container_name: scalping-bot
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      - BYBIT_API_KEY=${BYBIT_API_KEY}
-      - BYBIT_SECRET_KEY=${BYBIT_SECRET_KEY}
       - BYBIT_TESTNET=${BYBIT_TESTNET:-true}
       - SYMBOL=${SYMBOL:-BTCUSDT}
       - QUANTITY=${QUANTITY:-0.001}

@@ -63,6 +63,7 @@ docker-compose.yml
 # Documentation
 README.md
 QUICK_START.md
+DOCKER_README.md
 *.md
 
 # Scripts
@@ -70,3 +71,9 @@ deploy.sh
 run_bot.sh
 quick_setup.py
 test_bot.py
+docker-manager.sh
+check-docker.sh
+
+# Development files
+monitor/
+nginx.conf
