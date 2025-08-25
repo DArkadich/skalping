@@ -145,6 +145,9 @@ class BybitClient:
     def close_connection(self):
         """Закрывает WebSocket соединение"""
         try:
-            self.ws.close()
+            if hasattr(self.ws, 'close'):
+                self.ws.close()
+            elif hasattr(self.ws, 'close_connection'):
+                self.ws.close_connection()
         except Exception as e:
             self.logger.error(f"Ошибка при закрытии соединения: {e}")
