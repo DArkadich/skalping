@@ -7,50 +7,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      - BYBIT_TESTNET=${BYBIT_TESTNET:-true}
-      - SYMBOL=${SYMBOL:-BTCUSDT}
-      - QUANTITY=${QUANTITY:-0.001}
-      - PROFIT_TARGET=${PROFIT_TARGET:-0.002}
-      - STOP_LOSS=${STOP_LOSS:-0.001}
-      - MAX_POSITIONS=${MAX_POSITIONS:-3}
-      - RSI_PERIOD=${RSI_PERIOD:-14}
-      - RSI_OVERBOUGHT=${RSI_OVERBOUGHT:-70}
-      - RSI_OVERSOLD=${RSI_OVERSOLD:-30}
-      - CANDLE_INTERVAL=${CANDLE_INTERVAL:-1}
-      - POSITION_TIMEOUT=${POSITION_TIMEOUT:-300}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     volumes:
       - ./logs:/app/logs
-      - ./.env:/app/.env:ro
-    networks:
-      - bot-network
-    healthcheck:
-      test: ["CMD", "python3", "-c", "import requests; requests.get('http://localhost:8080/health', timeout=5)"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # Опциональный сервис для мониторинга
-  bot-monitor:
-    image: nginx:alpine
-    container_name: bot-monitor
-    restart: unless-stopped
     ports:
-      - "8080:80"
-    volumes:
-      - ./monitor:/usr/share/nginx/html
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    networks:
-      - bot-network
-    depends_on:
-      - scalping-bot
-
-networks:
-  bot-network:
-    driver: bridge
-
-volumes:
-  logs:
-    driver: local
+      - "8080:8080"

@@ -39,7 +39,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 ENV LOG_LEVEL=INFO
 
-# Открываем порт для мониторинга (опционально)
+# Открываем порт для мониторинга
 EXPOSE 8080
 
 # Команда по умолчанию

@@ -214,6 +214,23 @@ case "$1" in
         
         cd "$PROJECT_DIR"
         
+        # Проверяем наличие .env файла
+        if [ ! -f ".env" ]; then
+            echo "⚠️ Файл .env не найден"
+            echo "Создайте .env файл с вашими настройками Bybit API"
+            echo "Пример содержимого:"
+            echo "BYBIT_API_KEY=your_api_key_here"
+            echo "BYBIT_SECRET_KEY=your_secret_key_here"
+            echo "BYBIT_TESTNET=false"
+            echo "SYMBOL=BTCUSDT"
+            echo "QUANTITY=0.001"
+            echo ""
+            echo "Или скопируйте из примера:"
+            echo "cp env_example.txt .env"
+            echo "nano .env  # Отредактируйте API ключи"
+            exit 1
+        fi
+        
         if docker compose version &> /dev/null; then
             docker compose ps
             echo ""
