@@ -1,14 +1,15 @@
 import asyncio
 import logging
 from typing import Dict, List, Optional, Tuple
-from pybit import HTTP, WebSocket
+from pybit.unified_trading import HTTP
+from pybit.unified_trading import WebSocket
 from config import Config
 
 class BybitClient:
     def __init__(self):
         self.config = Config()
         self.session = HTTP(
-            endpoint="https://api-testnet.bybit.com" if self.config.BYBIT_TESTNET else "https://api.bybit.com",
+            testnet=self.config.BYBIT_TESTNET,
             api_key=self.config.BYBIT_API_KEY,
             api_secret=self.config.BYBIT_SECRET_KEY
         )
@@ -23,7 +24,7 @@ class BybitClient:
     async def get_account_info(self) -> Dict:
         """Получает информацию об аккаунте"""
         try:
-            response = self.session.get_wallet_balance(coin="USDT")
+            response = self.session.get_wallet_balance(accountType="UNIFIED", coin="USDT")
             return response
         except Exception as e:
             self.logger.error(f"Ошибка при получении информации об аккаунте: {e}")
@@ -32,9 +33,9 @@ class BybitClient:
     async def get_market_price(self, symbol: str) -> Optional[float]:
         """Получает текущую рыночную цену"""
         try:
-            response = self.session.latest_information_for_symbol(symbol=symbol)
-            if response and 'result' in response and response['result']:
-                return float(response['result'][0]['last_price'])
+            response = self.session.get_tickers(category="linear", symbol=symbol)
+            if response and 'result' in response and response['result'] and 'list' in response['result']:
+                return float(response['result']['list'][0]['lastPrice'])
             return None
         except Exception as e:
             self.logger.error(f"Ошибка при получении рыночной цены: {e}")
@@ -43,13 +44,14 @@ class BybitClient:
     async def get_kline_data(self, symbol: str, interval: str, limit: int = 100) -> List[Dict]:
         """Получает данные свечей"""
         try:
-            response = self.session.query_kline(
+            response = self.session.get_kline(
+                category="linear",
                 symbol=symbol,
                 interval=interval,
                 limit=limit
             )
-            if response and 'result' in response:
-                return response['result']
+            if response and 'result' in response and 'list' in response['result']:
+                return response['result']['list']
             return []
         except Exception as e:
             self.logger.error(f"Ошибка при получении данных свечей: {e}")
@@ -60,17 +62,18 @@ class BybitClient:
         """Размещает ордер"""
         try:
             order_params = {
+                "category": "linear",
                 "symbol": symbol,
                 "side": side,
-                "order_type": order_type,
-                "qty": quantity,
-                "time_in_force": "GoodTillCancel"
+                "orderType": order_type,
+                "qty": str(quantity),
+                "timeInForce": "GTC"
             }
             
             if price and order_type == "Limit":
-                order_params["price"] = price
+                order_params["price"] = str(price)
             
-            response = self.session.place_active_order(**order_params)
+            response = self.session.place_order(**order_params)
             self.logger.info(f"Ордер размещен: {response}")
             return response
         except Exception as e:
@@ -92,10 +95,10 @@ class BybitClient:
     async def get_open_positions(self, symbol: str) -> List[Dict]:
         """Получает открытые позиции"""
         try:
-            response = self.session.my_position(symbol=symbol)
-            if response and 'result' in response:
+            response = self.session.get_positions(category="linear", symbol=symbol)
+            if response and 'result' in response and 'list' in response['result']:
                 positions = []
-                for pos in response['result']:
+                for pos in response['result']['list']:
                     if float(pos['size']) > 0:
                         positions.append(pos)
                 return positions
@@ -107,7 +110,7 @@ class BybitClient:
     async def cancel_all_orders(self, symbol: str) -> bool:
         """Отменяет все ордера для символа"""
         try:
-            response = self.session.cancel_all_active_orders(symbol=symbol)
+            response = self.session.cancel_all_orders(category="linear", symbol=symbol)
             self.logger.info(f"Все ордера отменены: {response}")
             return True
         except Exception as e:
@@ -117,12 +120,13 @@ class BybitClient:
     async def get_order_history(self, symbol: str, limit: int = 50) -> List[Dict]:
         """Получает историю ордеров"""
         try:
-            response = self.session.get_active_order(
+            response = self.session.get_open_orders(
+                category="linear",
                 symbol=symbol,
                 limit=limit
             )
-            if response and 'result' in response:
-                return response['result']
+            if response and 'result' in response and 'list' in response['result']:
+                return response['result']['list']
             return []
         except Exception as e:
             self.logger.error(f"Ошибка при получении истории ордеров: {e}")
